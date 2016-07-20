@@ -1,0 +1,44 @@
+language: rust
+rust:
+- stable
+- beta
+- nightly
+sudo: false
+os:
+- linux
+cache:
+  directories:
+  - "$HOME/.cargo"
+  - target
+matrix:
+  fast_finish: true
+  allow_failures:
+  - rust: nightly
+env:
+  matrix:
+  - CARGO_FEATURES=
+  global:
+  - CARGO_QUIET=
+  - secure: CIAAcbCngiKJ7Lv/8y2JsDH2UbVb6eX27eJMNIS2AnQ1yotLsyGYSfVKHPGQ1SDMADh7moZc00l63bX8bztNKJlK0gdc9nd5zJ4Rnz8hfwzw9Kk+4OrfYhUC72AzBJnx6ZglbNgYAGJ8UK9ZmJ7jrQ2MDRko5l6zdQ+PtUfDwIEzr68gDdl6+WKnDxUQE+iAPoZFg7bmJeF/qsinhzQkswQZCoxcgpVVkEZMAOhxDTYoysXSg6xxPPpw3e/QRBIz/aSD8gsT1LEzUsGBbjJ2cQaUsywYMIGxrt5Yz+yKKdHmpzlmIK7tz3SIybTV0pXyyChOqsy0pR5u+Q87YtJeT2Jhju7q6TZIDUqfpjHIk6OHE/Iz7GPwXAhRKwcDFwgSZzA+Tctb46IZNLztqpwCNpePexUHc7IBIc7zMGBAh4Ewwr+t+BgQKT/aP9MBnmJDXJ+mYLlT+TtQ/R+s+Lnb+EYop4GOP9ii2zZg2nVo121sWKKzmqh3E8JwLBarCwfnmqKasTK1NcWjoH2i8ceJ4m8GNfUK6PBRUokYEz5DjKtDyxVRI9QBsrvy6YVg6XbzZj5WlADtvLEs8NYVM1AD0qrhSGAiljXUVYUsw+Dk4oBZlNnUqDvV1ccXIA8n4+dOCNARs4bWveMJe2Y1ltLfu49o9n4LjysrszEJnsT53ks=
+  - secure: ma2HhGW5pkDQdnWlrv5VRtmHKq2MlAkeJ6iVasFET8i4B2GbZoXchKzO7VNjKTrXP1Lwqm8wvD7/KTnirRU3PUGoM0a7FU34CHcNMx29V2lkbpgceLLaBfhwUchY13LM4Z4ItI0Cgrc3sjbvwxcpbYXxMHA0vYdrw3ySC2t7Af2+r0lfFKGtgNFFFUeWmCSqM813xGcFO07kBQv3nZX3Iu4EDrGpvYBW20k57/S8bg0+WB69FuK98FMsdqssKIe30ElJ3gaLkRGIIQeohR/GR85aWnQwoaecTSqPijutO/0iURWoAO+w4XYCZiw53sDEeKi53LhgkLQ5EkikWasgZzWNZVWPhU3sf+1QA4x38hf+UDGEwbAPIN1ka7B0ZmSCZLAwK/bDPhHQSJZ6AQe5EeZ/k2/UC2vzWwUQGbUo1V2e7sZAFXsdFqCEf+qrAi7P10Ah0UhCxpHXtzyVAizpY2dYJ0U+x3xmHD2gWJCDPogkrkhm/6fGN/qc7uz19Vn15pQAJCF4S6WjTsSxMVsuNv52Kj/2mgbFIk+TbGBXEKAA9cN2ZsQDi2BObpdxYwuCYNjb0MlDDvM185U2/MaBpgESv4D7wi3tDjCv7QohcQbImN3IQwmZUqe3jTriwBthJYuQKWBxrRe+tRi0uZEUkPnb8/pr1N590n1oxXzRntg=
+before_install:
+- curl -L https://github.com/arcnmx/ci/archive/0.1.tar.gz | tar -xzC $HOME && . $HOME/ci-0.1/src
+script:
+- (cd image && cargo test)
+- (cd image && cargo build)
+- cargo test
+- cargo build
+deploy:
+  provider: script
+  script: 'true'
+  on:
+    tags: true
+    all_branches: true
+    condition: "$TRAVIS_RUST_VERSION = stable"
+before_deploy:
+- cargo doc -p winpe-image
+- cargo doc
+- cargo package
+after_deploy:
+- cargo pages-publish
+- cargo publish

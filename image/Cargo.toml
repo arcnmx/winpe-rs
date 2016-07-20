@@ -1,0 +1,16 @@
+[package]
+name = "winpe-image"
+version = "0.0.1"
+authors = ["arcnmx"]
+
+description = "Windows PE file structs"
+keywords = ["pe", "exe", "dll", "pod"]
+
+documentation = "http://arcnmx.github.io/winpe-rs/winpe_image"
+repository = "https://github.com/arcnmx/winpe-rs"
+readme = "README.md"
+license = "MIT"
+
+[dependencies]
+byteorder-pod = "^0.1.0"
+pod = "^0.5.0"

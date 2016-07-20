@@ -1,0 +1,20 @@
+[package]
+name = "winpe-loader"
+version = "0.0.1"
+authors = ["arcnmx"]
+
+description = "Windows PE file loader"
+keywords = ["pe", "exe", "dll", "pod"]
+
+documentation = "http://arcnmx.github.io/winpe-rs/winpe_loader"
+repository = "https://github.com/arcnmx/winpe-rs"
+readme = "README.md"
+license = "MIT"
+
+[dependencies]
+winpe = { version = "=0.0.1", path = "../" }
+bitflags = "^0.7.0"
+
+[target.'cfg(windows)'.dependencies]
+kernel32-sys = "^0.2.2"
+winapi = "^0.2.8"

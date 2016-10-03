@@ -4,7 +4,7 @@
 extern crate winpe;
 
 #[cfg(windows)]
-pub fn view_current_process() -> Result<winpe::View<'static>, u32> {
+pub fn view_current_process() -> Result<winpe::View<&'static [u8]>, u32> {
     use std::ptr;
 
     unsafe {
@@ -107,8 +107,13 @@ pub unsafe fn virtual_protect(addr: *const u8, len: usize, protection: MemoryPro
     }
 }
 
-pub fn protect_dll(view: winpe::View) -> Result<(), u32> {
-    for section in view.section_headers() {
+#[cfg(unix)]
+pub unsafe fn virtual_protect(addr: *const u8, len: usize, protection: MemoryProtection) -> Result<Option<MemoryProtection>, u32> {
+    unimplemented!()
+}
+
+pub fn protect_dll<H: winpe::PeHeaders + ?Sized, V: AsRef<[u8]> + ?Sized>(headers: &H, view: &winpe::View<&V>) -> Result<(), u32> {
+    for section in headers.section_headers() {
         let chars = section.characteristics();
         let mut protection = MemoryProtection::empty();
         if (chars & winpe::image::SCN_MEM_EXECUTE) != 0 {
@@ -121,7 +126,7 @@ pub fn protect_dll(view: winpe::View) -> Result<(), u32> {
             protection = protection | MEMORY_PROTECTION_WRITE
         }
 
-        let section = try!(view.section(section).ok_or(0u32));
+        let section = try!(winpe::PeRead::section(view, section).ok().ok_or(0u32));
 
         unsafe {
             try!(virtual_protect(section.as_ptr(), section.len(), protection));
@@ -131,13 +136,13 @@ pub fn protect_dll(view: winpe::View) -> Result<(), u32> {
     Ok(())
 }
 
-pub fn resolve_imports(view: winpe::View) -> Result<(), u32> {
-    for import in view.imports().unwrap() {
+pub fn resolve_imports<'a, R: winpe::PeRead + ?Sized, W: winpe::PeWrite<'a> + ?Sized>(read: &R, write: &mut W) -> Result<(), u32> {
+    for import in read.imports().unwrap() {
         let import = import.unwrap();
         println!("import: {:?}", import);
-        println!("import name: {:?}", view.c_str(import.name()).unwrap());
+        println!("import name: {:?}", read.read_cstring(import.name()).unwrap());
 
-        for import in view.import_table(&import).unwrap() {
+        for import in read.import_table(&import).unwrap() {
             let import = import.unwrap();
             println!("\timport_table: {:?}", import);
         }
@@ -146,12 +151,11 @@ pub fn resolve_imports(view: winpe::View) -> Result<(), u32> {
     Ok(())
 }
 
-pub fn resolve_relocations(view: winpe::View) -> Result<(), u32> {
-    for relocation in view.relocations().unwrap() {
+pub fn resolve_relocations<'a, R: winpe::PeRead + ?Sized, W: winpe::PeWrite<'a> + ?Sized>(read: &R, write: &mut W) -> Result<(), u32> {
+    for relocation in read.relocations().unwrap() {
         let relocation = relocation.unwrap();
         println!("reloc: {:?}", relocation);
-        view.segment_from(relocation.address).unwrap();
-
+        read.segment_from(relocation.address).unwrap();
     }
 
     Ok(())
@@ -186,7 +190,7 @@ mod tests {
 
     #[test]
     #[cfg(windows)]
-    fn check_self() {
+    fn validate_self() {
         use kernel32;
         use std::ptr;
 
@@ -194,19 +198,33 @@ mod tests {
             let handle = kernel32::GetModuleHandleA(ptr::null_mut());
 
             assert!(!handle.is_null());
-            winpe::View::from_base(handle as _).unwrap();
+            let view: winpe::View<&'static [u8]> = winpe::View::from_base(handle as _).unwrap();
         }
     }
 
     #[test]
     #[cfg(windows)]
-    fn test_data() {
+    fn iterate_self() {
+        use winpe::{PeHeaders, PeRead};
+
         let view = view_current_process().unwrap();
 
         println!("{:#?}", view.nt_headers());
-        println!("{:#?}", view.data_directories());
+        println!("{:#?}", view.directory_headers());
 
-        resolve_imports(view.clone()).unwrap();
-        resolve_relocations(view.clone()).unwrap();
+        unimplemented!()
+        //resolve_imports(&view).unwrap();
+        //resolve_relocations(&view).unwrap();
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn write_self() {
+        use std::fs;
+
+        let view = view_current_process().unwrap();
+
+        let f = fs::File::create("out.exe").unwrap();
+        winpe::write_pe(&view, f, true).unwrap();
     }
 }

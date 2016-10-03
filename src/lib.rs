@@ -7,8 +7,14 @@ extern crate result;
 
 pub extern crate winpe_image as image;
 
-mod view;
+mod traits;
 mod nt;
+mod parse;
+mod view;
+mod file;
 
-pub use view::{View, ImportSymbol};
-pub use nt::NtHeaders;
+pub use traits::{PeHeaders, PeRead, PeWrite};
+pub use parse::{write_pe, RelocationIterator, ImportIterator, ImportTableIterator};
+pub use nt::{NtKind, NtHeaders, DirectoryEntry, ImportSymbol, Relocation, RelocationKind};
+pub use view::View;
+pub use file::File;

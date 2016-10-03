@@ -238,6 +238,10 @@ impl DataDirectory {
     pub fn size(&self) -> u32 {
         self.size.get()
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.virtual_address() == 0 && self.size() == 0
+    }
 }
 
 pub const NT_OPTIONAL_HDR32_MAGIC: u16 = 0x10b;
@@ -570,6 +574,14 @@ impl SectionHeader {
 
     pub fn characteristics(&self) -> u32 {
         self.characteristics.get()
+    }
+
+    pub fn contains_virtual_address(&self, rva: u32) -> bool {
+        let start = self.virtual_address();
+        start.checked_add(self.virtual_size())
+            .map(|end|
+                start <= rva && end > rva
+            ).unwrap_or(false)
     }
 }
 

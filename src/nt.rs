@@ -1,6 +1,66 @@
 use std::borrow::Cow;
-use std::mem::size_of;
+use std::mem::{transmute, size_of};
+use std::ffi::CString;
 use image::{self, NtHeaders32, NtHeaders64};
+
+#[repr(usize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum DirectoryEntry {
+    Export = image::DIRECTORY_ENTRY_EXPORT,
+    Import = image::DIRECTORY_ENTRY_IMPORT,
+    Resource = image::DIRECTORY_ENTRY_RESOURCE,
+    Exception = image::DIRECTORY_ENTRY_EXCEPTION,
+    Security = image::DIRECTORY_ENTRY_SECURITY,
+    BaseReloc = image::DIRECTORY_ENTRY_BASERELOC,
+    Debug = image::DIRECTORY_ENTRY_DEBUG,
+    Architecture = image::DIRECTORY_ENTRY_ARCHITECTURE,
+    GlobalPtr = image::DIRECTORY_ENTRY_GLOBALPTR,
+    Tls = image::DIRECTORY_ENTRY_TLS,
+    LoadConfig = image::DIRECTORY_ENTRY_LOAD_CONFIG,
+    BoundImport = image::DIRECTORY_ENTRY_BOUND_IMPORT,
+    Iat = image::DIRECTORY_ENTRY_IAT,
+    DelayImport = image::DIRECTORY_ENTRY_DELAY_IMPORT,
+    ComDescriptor = image::DIRECTORY_ENTRY_COM_DESCRIPTOR,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum ImportSymbol {
+    Ordinal(u16),
+    Name {
+        ordinal_hint: u16,
+        name: CString,
+    },
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct Relocation {
+    pub kind: RelocationKind,
+    pub address: u32,
+}
+
+#[repr(u8)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum RelocationKind {
+    Absolute = image::REL_BASED_ABSOLUTE,
+    High = image::REL_BASED_HIGH,
+    Low = image::REL_BASED_LOW,
+    HighLow = image::REL_BASED_HIGHLOW,
+    HighAdj = image::REL_BASED_HIGHADJ,
+    MipsJmpAddrArmMov32 = image::REL_BASED_MIPS_JMPADDR,
+    ThumbMov32 = image::REL_BASED_THUMB_MOV32,
+    MipsJmpAddr16Ia64Imm64 = image::REL_BASED_MIPS_JMPADDR16,
+    Dir64 = image::REL_BASED_DIR64,
+}
+
+impl RelocationKind {
+    pub fn from_kind(v: u8) -> Option<Self> {
+        if v <= 0xa && v != 6 && v != 8 {
+            Some(unsafe { transmute(v) })
+        } else {
+            None
+        }
+    }
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum NtKind {
